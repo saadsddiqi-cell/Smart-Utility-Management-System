@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block header_title %}
+    <div class="text-[22px] font-bold text-main">🤖 {{ _('ai_forecast', 'AI Usage Forecast') }}</div>
+    <div class="text-[13px] text-sub mt-0.5">Linear Regression model — predicting next 7 days of utility consumption</div>
+{% endblock %}
+
+{% block content %}
+
+    <!-- AI Badge -->
+    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-purple-500/10 to-sky-500/10 border border-purple-500/20 rounded-full text-[12px] font-semibold text-purple-600 dark:text-purple-400 mb-5">
+        🧠 Powered by scikit-learn Linear Regression
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="card p-5">
+            <div class="text-[12px] text-sub mb-2">⚡ Avg Predicted Electricity</div>
+            <div class="text-[24px] font-bold text-main">
+                {% if forecasts.electricity.predictions %}
+                    {{ (forecasts.electricity.predictions | sum / forecasts.electricity.predictions | length) | round(1) }}
+                {% else %}0{% endif %}
+                <span class="text-[13px] font-medium text-sub">kWh/day</span>
+            </div>
+            <div class="text-[11px] text-amber-500 mt-1">Next 7 days average</div>
+        </div>
+
+        <div class="card p-5">
+            <div class="text-[12px] text-sub mb-2">💧 Avg Predicted Water</div>
+            <div class="text-[24px] font-bold text-main">
+                {% if forecasts.water.predictions %}
+                    {{ (forecasts.water.predictions | sum / forecasts.water.predictions | length) | round(1) }}
+                {% else %}0{% endif %}
+                <span class="text-[13px] font-medium text-sub">L/day</span>
+            </div>
+            <div class="text-[11px] text-sky-500 mt-1">Next 7 days average</div>
+        </div>
+
+        <div class="card p-5">
+            <div class="text-[12px] text-sub mb-2">🔥 Avg Predicted Gas</div>
+            <div class="text-[24px] font-bold text-main">
+                {% if forecasts.gas.predictions %}
+                    {{ (forecasts.gas.predictions | sum / forecasts.gas.predictions | length) | round(1) }}
+                {% else %}0{% endif %}
+                <span class="text-[13px] font-medium text-sub">m³/day</span>
+            </div>
+            <div class="text-[11px] text-red-500 mt-1">Next 7 days average</div>
+        </div>
+    </div>
+
+    <!-- Forecast Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-0.5">⚡ Electricity Forecast</div>
+            <div class="text-[11px] text-sub mb-4">Predicted kWh for next 7 days</div>
+            <div class="h-[200px] relative"><canvas id="elecForecastChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-0.5">💧 Water Forecast</div>
+            <div class="text-[11px] text-sub mb-4">Predicted Litres for next 7 days</div>
+            <div class="h-[200px] relative"><canvas id="waterForecastChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-0.5">🔥 Gas Forecast</div>
+            <div class="text-[11px] text-sub mb-4">Predicted m³ for next 7 days</div>
+            <div class="h-[200px] relative"><canvas id="gasForecastChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Prediction Table -->
+    <div class="card mb-6">
+        <div class="text-[15px] font-bold text-main mb-1">📋 Detailed Predictions</div>
+        <div class="text-[12px] text-sub mb-4">Day-by-day forecast — Linear Regression model output</div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                    <tr>
+                        <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Date</th>
+                        <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">⚡ Electricity (kWh)</th>
+                        <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">💧 Water (Litres)</th>
+                        <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">🔥 Gas (m³)</th>
+                        <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in range(forecasts.electricity.dates | length) %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="py-3 px-3.5 text-[13px] font-bold text-main border-b border-slate-50 dark:border-slate-800/50">{{ forecasts.electricity.dates[i] }}</td>
+                        <td class="py-3 px-3.5 border-b border-slate-50 dark:border-slate-800/50">
+                            {% set ep = forecasts.electricity.predictions[i] %}
+                            <span class="font-semibold {% if ep > 30 %}text-red-500{% elif ep > 20 %}text-amber-500{% else %}text-emerald-500{% endif %}">
+                                {{ ep }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 border-b border-slate-50 dark:border-slate-800/50">
+                            {% set wp = forecasts.water.predictions[i] %}
+                            <span class="font-semibold {% if wp > 350 %}text-red-500{% elif wp > 250 %}text-amber-500{% else %}text-emerald-500{% endif %}">
+                                {{ wp }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 border-b border-slate-50 dark:border-slate-800/50">
+                            {% set gp = forecasts.gas.predictions[i] if i < forecasts.gas.predictions | length else 0 %}
+                            <span class="font-semibold {% if gp > 12 %}text-red-500{% elif gp > 8 %}text-amber-500{% else %}text-emerald-500{% endif %}">
+                                {{ gp }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 border-b border-slate-50 dark:border-slate-800/50">
+                            {% set ep = forecasts.electricity.predictions[i] %}
+                            {% set wp = forecasts.water.predictions[i] %}
+                            {% if ep > 30 or wp > 350 %}
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">🔴 High</span>
+                            {% elif ep > 20 or wp > 250 %}
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">🟡 Medium</span>
+                            {% else %}
+                                <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">🟢 Low</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Model Info -->
+    <div class="rounded-[18px] p-6 shadow-sm bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-white/10 text-white">
+        <div class="text-[15px] font-bold mb-4">🧠 How the AI Model Works</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
+                <div class="text-[13px] font-bold text-sky-400 mb-2">1. Data Collection</div>
+                <div class="text-[12px] text-gray-300 leading-relaxed">Collects last 14 days of actual electricity, water and gas readings from the database.</div>
+            </div>
+            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
+                <div class="text-[13px] font-bold text-emerald-400 mb-2">2. Linear Regression</div>
+                <div class="text-[12px] text-gray-300 leading-relaxed">Fits a straight line through historical data points to find the consumption trend using scikit-learn.</div>
+            </div>
+            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
+                <div class="text-[13px] font-bold text-amber-400 mb-2">3. Prediction</div>
+                <div class="text-[12px] text-gray-300 leading-relaxed">Extends the trend line 7 days into the future to predict upcoming utility consumption.</div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chartOpts = (color) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8 }
+        },
+        scales: {
+            y: { beginAtZero: false, grid: { color: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } },
+            x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } }
+        },
+        elements: { point: { radius: 4 }, line: { tension: 0.4 } }
+    });
+
+    new Chart(document.getElementById('elecForecastChart'), {
+        type: 'line',
+        data: {
+            labels: {{ forecasts.electricity.dates | tojson }},
+            datasets: [{
+                data: {{ forecasts.electricity.predictions | tojson }},
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.08)',
+                borderDash: [6, 3],
+                fill: true,
+                pointBackgroundColor: '#f59e0b'
+            }]
+        },
+        options: chartOpts('#f59e0b')
+    });
+
+    new Chart(document.getElementById('waterForecastChart'), {
+        type: 'line',
+        data: {
+            labels: {{ forecasts.water.dates | tojson }},
+            datasets: [{
+                data: {{ forecasts.water.predictions | tojson }},
+                borderColor: '#0ea5e9',
+                backgroundColor: 'rgba(14,165,233,0.08)',
+                borderDash: [6, 3],
+                fill: true,
+                pointBackgroundColor: '#0ea5e9'
+            }]
+        },
+        options: chartOpts('#0ea5e9')
+    });
+
+    new Chart(document.getElementById('gasForecastChart'), {
+        type: 'line',
+        data: {
+            labels: {{ forecasts.gas.dates | tojson }},
+            datasets: [{
+                data: {{ forecasts.gas.predictions | tojson }},
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239,68,68,0.08)',
+                borderDash: [6, 3],
+                fill: true,
+                pointBackgroundColor: '#ef4444'
+            }]
+        },
+        options: chartOpts('#ef4444')
+    });
+</script>
+{% endblock %}

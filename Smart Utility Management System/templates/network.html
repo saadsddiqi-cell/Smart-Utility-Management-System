@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block header_title %}
+    <div class="text-[22px] font-bold text-main">🌐 {{ _('Network Map & Outage Management', 'Network Map & Outage Management') }}</div>
+    <div class="text-[13px] text-sub mt-0.5">{{ _('Graph Data Structure — Dijkstra & BFS Algorithms', 'Graph Data Structure — Dijkstra & BFS Algorithms') }}</div>
+{% endblock %}
+
+{% block content %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+
+        <!-- Dijkstra Panel -->
+        <div class="card">
+            <div class="text-[15px] font-bold text-main mb-1">⚡ {{ _('Shortest Supply Route', 'Shortest Supply Route') }}</div>
+            <div class="text-[12px] text-sub mb-4">{{ _("Dijkstra's Algorithm — finds optimal path between two areas", "Dijkstra's Algorithm — finds optimal path between two areas") }}</div>
+
+            <form method="POST" action="/network">
+                <input type="hidden" name="action" value="dijkstra">
+                <div class="mb-3">
+                    <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">{{ _('From Area', 'From Area') }}</label>
+                    <select name="from_area" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border-1.5 border-slate-200 dark:border-slate-700 rounded-xl text-[14px] text-main outline-none focus:border-sky-500 cursor-pointer">
+                        {% for area in areas %}
+                        <option value="{{ area }}" {% if area == from_area %}selected{% endif %}>{{ area }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">{{ _('To Area', 'To Area') }}</label>
+                    <select name="to_area" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border-1.5 border-slate-200 dark:border-slate-700 rounded-xl text-[14px] text-main outline-none focus:border-sky-500 cursor-pointer">
+                        {% for area in areas %}
+                        <option value="{{ area }}" {% if area == to_area %}selected{% endif %}>{{ area }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-br from-sky-500 to-cyan-600 rounded-xl text-white text-[14px] font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-sky-500/30 transition-all border-none cursor-pointer">
+                    🔍 {{ _('Find Shortest Route', 'Find Shortest Route') }}
+                </button>
+            </form>
+
+            {% if action == "dijkstra" and path %}
+            <div class="mt-4 p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                <div class="text-[12px] font-bold text-emerald-700 dark:text-emerald-400 mb-2.5">
+                    ✅ {{ _('Shortest route found —', 'Shortest route found —') }} {{ distance }} {{ _('km total', 'km total') }}
+                </div>
+                <div class="flex flex-wrap items-center gap-1">
+                    {% for area in path %}
+                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold text-white {% if loop.first %}bg-amber-500{% elif loop.last %}bg-purple-500{% else %}bg-emerald-500{% endif %}">
+                        {{ area }}
+                    </span>
+                    {% if not loop.last %}
+                    <span class="text-slate-400 mx-0.5">→</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif action == "dijkstra" and not path %}
+            <div class="mt-4 p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl">
+                <div class="text-[12px] font-bold text-red-600 dark:text-red-400">❌ {{ _('No route found between these areas', 'No route found between these areas') }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- BFS Panel -->
+        <div class="card">
+            <div class="text-[15px] font-bold text-main mb-1">🔴 {{ _('Outage Spread Detection', 'Outage Spread Detection') }}</div>
+            <div class="text-[12px] text-sub mb-4">{{ _('BFS Algorithm — finds all areas affected by an outage', 'BFS Algorithm — finds all areas affected by an outage') }}</div>
+
+            <form method="POST" action="/network">
+                <input type="hidden" name="action" value="bfs">
+                <div class="mb-4">
+                    <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">{{ _('Outage Started In', 'Outage Started In') }}</label>
+                    <select name="outage_area" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border-1.5 border-slate-200 dark:border-slate-700 rounded-xl text-[14px] text-main outline-none focus:border-sky-500 cursor-pointer">
+                        {% for area in areas %}
+                        <option value="{{ area }}" {% if area == outage_area %}selected{% endif %}>{{ area }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl text-white text-[14px] font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/30 transition-all border-none cursor-pointer mt-[70px]">
+                    ⚠️ {{ _('Detect Affected Areas', 'Detect Affected Areas') }}
+                </button>
+            </form>
+
+            {% if action == "bfs" and affected %}
+            <div class="mt-4 p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl">
+                <div class="text-[12px] font-bold text-red-600 dark:text-red-400 mb-2.5">
+                    ⚠️ {{ affected|length }} {{ _('areas affected starting from', 'areas affected starting from') }} {{ outage_area }}
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for area in affected %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 animate-pulse">
+                        🔴 {{ area }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Network Visualization -->
+    <div class="card bg-slate-900 border-slate-800/50">
+        <div class="text-[15px] font-bold text-slate-100 mb-1">🗺️ Karachi Utility Network — Live Graph</div>
+        <div class="text-[12px] text-slate-400 mb-4">Graph adjacency list — Dijkstra & BFS visualization</div>
+
+        <canvas id="graphCanvas" class="w-full h-[420px] block rounded-xl bg-[#0a0f1e]"></canvas>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap gap-4 mt-4">
+            <div class="flex items-center gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-blue-800"></div>
+                <span class="text-[11px] text-slate-400">Normal Area</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                <span class="text-[11px] text-slate-400">Start Point</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                <span class="text-[11px] text-slate-400">On Route (Dijkstra)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
+                <span class="text-[11px] text-slate-400">End Point</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <span class="text-[11px] text-slate-400">Affected (BFS)</span>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const nodes = {
+        "Clifton":          { x: 0.15, y: 0.75 },
+        "Defence":          { x: 0.32, y: 0.88 },
+        "Saddar":           { x: 0.28, y: 0.55 },
+        "Korangi":          { x: 0.58, y: 0.82 },
+        "Gulshan":          { x: 0.52, y: 0.48 },
+        "Nazimabad":        { x: 0.42, y: 0.22 },
+        "North Nazimabad":  { x: 0.65, y: 0.18 },
+        "Malir":            { x: 0.82, y: 0.55 }
+    };
+
+    const edges = [
+        ["Clifton","Defence",3],["Defence","Korangi",8],["Clifton","Saddar",5],
+        ["Saddar","Gulshan",7],["Saddar","Nazimabad",9],["Gulshan","North Nazimabad",4],
+        ["Gulshan","Korangi",10],["Nazimabad","North Nazimabad",3],["Nazimabad","Malir",12],
+        ["Korangi","Malir",6],["North Nazimabad","Malir",15]
+    ];
+
+    const flaskPath     = {{ path | default([]) | tojson }};
+    const flaskAffected = {{ affected | default([]) | tojson }};
+    const flaskAction   = "{{ action }}";
+
+    let highlightPath  = flaskPath;
+    let affectedNodes  = flaskAffected;
+    let mode           = flaskAction || "none";
+
+    function isEdgeOnPath(a, b) {
+        if(mode !== "dijkstra" || highlightPath.length < 2) return false;
+        return highlightPath.some((n,i) =>
+            i < highlightPath.length-1 &&
+            ((n===a && highlightPath[i+1]===b) || (n===b && highlightPath[i+1]===a))
+        );
+    }
+
+    function getNodeColor(name) {
+        if(mode === "dijkstra" && highlightPath.length > 0) {
+            if(name === highlightPath[0])                        return { fill: '#f59e0b', glow: '#f59e0b' };
+            if(name === highlightPath[highlightPath.length - 1]) return { fill: '#8b5cf6', glow: '#8b5cf6' };
+            if(highlightPath.includes(name))                     return { fill: '#10b981', glow: '#10b981' };
+        }
+        if(mode === "bfs" && affectedNodes.includes(name)) return { fill: '#ef4444', glow: '#ef4444' };
+        return { fill: '#1e3a8a', glow: '#3b82f6' };
+    }
+
+    function draw() {
+        const canvas = document.getElementById('graphCanvas');
+        if (!canvas) return;
+        const dpr    = window.devicePixelRatio || 1;
+        canvas.width  = canvas.offsetWidth  * dpr;
+        canvas.height = canvas.offsetHeight * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const W = canvas.offsetWidth;
+        const H = canvas.offsetHeight;
+
+        // Dark background
+        ctx.fillStyle = '#0a0f1e';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth   = 1;
+        for(let x=0; x<W; x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+        for(let y=0; y<H; y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+        // Edges
+        edges.forEach(([a, b, w]) => {
+            const n1 = nodes[a], n2 = nodes[b];
+            const x1 = n1.x*W, y1 = n1.y*H;
+            const x2 = n2.x*W, y2 = n2.y*H;
+            const onPath = isEdgeOnPath(a, b);
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+
+            if(onPath) {
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth   = 3;
+                ctx.shadowColor = '#10b981';
+                ctx.shadowBlur  = 14;
+            } else {
+                ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+                ctx.lineWidth   = 1.5;
+                ctx.shadowBlur  = 0;
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Weight label
+            const mx = (x1+x2)/2;
+            const my = (y1+y2)/2;
+            ctx.fillStyle  = onPath ? '#10b981' : 'rgba(255,255,255,0.2)';
+            ctx.font       = 'bold 10px Inter';
+            ctx.textAlign  = 'center';
+            ctx.fillText(w + 'km', mx, my - 5);
+        });
+
+        // Nodes
+        Object.entries(nodes).forEach(([name, pos]) => {
+            const x = pos.x * W;
+            const y = pos.y * H;
+            const { fill, glow } = getNodeColor(name);
+            const r = 28;
+
+            // Glow ring
+            ctx.shadowColor = glow;
+            ctx.shadowBlur  = 22;
+            ctx.beginPath();
+            ctx.arc(x, y, r + 5, 0, 2*Math.PI);
+            ctx.fillStyle = fill + '18';
+            ctx.fill();
+
+            // Main circle
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2*Math.PI);
+            ctx.fillStyle   = fill;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth   = 1.5;
+            ctx.stroke();
+            ctx.shadowBlur  = 0;
+
+            // Label text
+            ctx.fillStyle = '#fff';
+            ctx.font      = 'bold 9px Inter';
+            ctx.textAlign = 'center';
+            const words   = name.split(' ');
+            if(words.length === 1) {
+                ctx.fillText(name, x, y + 4);
+            } else {
+                ctx.fillText(words[0], x, y - 3);
+                ctx.fillText(words.slice(1).join(' '), x, y + 9);
+            }
+        });
+    }
+
+    window.addEventListener('load',   draw);
+    window.addEventListener('resize', draw);
+</script>
+{% endblock %}

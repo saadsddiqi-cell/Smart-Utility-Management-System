@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block header_title %}
+    <div class="text-[22px] font-bold text-main">🌳 {{ _('City Hierarchy', 'City Hierarchy') }}</div>
+    <div class="text-[13px] text-sub mt-0.5">{{ _('Tree Data Structure — Pre-order Traversal', 'Tree Data Structure — Pre-order Traversal') }}</div>
+{% endblock %}
+
+{% block content %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+
+        <!-- Tree Visualization -->
+        <div class="card">
+            <div class="text-[15px] font-bold text-main mb-1">🌳 {{ _('Hierarchy Tree', 'Hierarchy Tree') }}</div>
+            <div class="text-[12px] text-sub mb-4">{{ _('City → Zone → Area (3-level tree structure)', 'City → Zone → Area (3-level tree structure)') }}</div>
+
+            <div class="text-[14px]">
+
+                <!-- Root: Karachi -->
+                <div class="my-1">
+                    <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 text-white font-bold text-[15px] shadow-lg">
+                        🏙️ {{ tree_dict.name }}
+                    </div>
+
+                    <div class="ml-8 border-l-2 border-dashed border-slate-200 dark:border-slate-700 pl-5 mt-2 mb-2">
+                        {% for zone in tree_dict.children %}
+                        <div class="my-3.5">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-sky-500 to-cyan-500 text-white font-semibold text-[13px] shadow-md">
+                                {% if loop.index == 1 %}🔵{% elif loop.index == 2 %}🟢{% else %}🟡{% endif %}
+                                {{ zone.name }}
+                                <span class="text-[10px] opacity-70">({{ zone.children|length }} {{ _('areas', 'areas') }})</span>
+                            </div>
+                            <div class="ml-8 border-l-2 border-dashed border-sky-500/30 pl-5 mt-2 mb-2">
+                                {% for area in zone.children %}
+                                <div class="my-1.5">
+                                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-[12px] hover:bg-sky-50 dark:hover:bg-sky-900/20 hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all hover:translate-x-1 cursor-default">
+                                        📍 {{ area.name }}
+                                        {% if area.data %}
+                                        <span class="text-[10px] text-slate-400 ml-1">
+                                            ⚡{{ area.data.electricity }}% 💧{{ area.data.water }}% 🔥{{ area.data.gas }}%
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Interactive Tree Search -->
+        <div>
+            <div class="card p-6 sticky top-6">
+                <h3 class="text-sm font-bold text-main mb-4 flex items-center gap-2">🔍 {{ _('Search Node (Sub-areas)', 'Search Node (Sub-areas)') }}</h3>
+                <div class="flex flex-col gap-3">
+                    <select id="areaSelect" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-main outline-none focus:border-emerald-500 transition-colors">
+                        {% for a in areas %}
+                        <option value="{{ a.name }}">{{ a.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" onclick="showSubAreas()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-all hover:-translate-y-0.5">{{ _('Search Node', 'Search Node') }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pre-order Traversal -->
+        <div class="card">
+            <div class="text-[15px] font-bold text-main mb-1">🔄 {{ _('Pre-order Traversal', 'Pre-order Traversal') }}</div>
+            <div class="text-[12px] text-sub mb-4">{{ _('Root → Children (left to right) — DSA algorithm output', 'Root → Children (left to right) — DSA algorithm output') }}</div>
+
+            <div class="space-y-1.5">
+                {% for node in traversal %}
+                <div class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-transform hover:translate-x-1 
+                    {% if node.type == 'city' %}bg-slate-100 dark:bg-slate-800/80
+                    {% elif node.type == 'zone' %}bg-sky-50 dark:bg-sky-900/20
+                    {% else %}bg-emerald-50 dark:bg-emerald-900/20{% endif %}">
+
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 text-white
+                        {% if node.type == 'city' %}bg-slate-900 dark:bg-slate-700
+                        {% elif node.type == 'zone' %}bg-sky-500
+                        {% else %}bg-emerald-500{% endif %}">
+                        {{ loop.index }}
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="text-[13px] font-semibold text-main">
+                            {% if node.type == 'city' %}🏙️
+                            {% elif node.type == 'zone' %}🔵
+                            {% else %}📍{% endif %}
+                            {{ node.name }}
+                        </div>
+                        <div class="text-[10px] text-sub uppercase tracking-wide">
+                            {{ node.type }}
+                            {% if node.children > 0 %} — {{ node.children }} {{ _('children', 'children') }}{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="text-[10px] px-2 py-0.5 rounded-full font-bold text-white
+                        {% if node.type == 'city' %}bg-slate-900 dark:bg-slate-700
+                        {% elif node.type == 'zone' %}bg-sky-500
+                        {% else %}bg-emerald-500{% endif %}">
+                        {% if node.type == 'city' %}ROOT
+                        {% elif node.type == 'zone' %}ZONE
+                        {% else %}LEAF{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Area Stats -->
+    <div class="card">
+        <div class="text-[15px] font-bold text-main mb-1">📊 {{ _('Area Utility Levels', 'Area Utility Levels') }}</div>
+        <div class="text-[12px] text-sub mb-5">{{ _('Leaf nodes of the tree — actual area utility supply percentages', 'Leaf nodes of the tree — actual area utility supply percentages') }}</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {% for area in areas %}
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5 border border-slate-100 dark:border-slate-700/50">
+                <div class="text-[13px] font-bold text-main mb-2.5">📍 {{ area.name }}</div>
+
+                <div class="mb-1.5">
+                    <div class="flex justify-between text-[11px] text-sub mb-1">
+                        <span>⚡ {{ _('Electricity', 'Electricity') }}</span>
+                        <span class="font-semibold {% if area.data.electricity > 85 %}text-emerald-500{% elif area.data.electricity > 70 %}text-amber-500{% else %}text-red-500{% endif %}">
+                            {{ area.data.electricity }}%
+                        </span>
+                    </div>
+                    <div class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full" style="width:{{ area.data.electricity }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="mb-1.5">
+                    <div class="flex justify-between text-[11px] text-sub mb-1">
+                        <span>💧 {{ _('Water', 'Water') }}</span>
+                        <span class="font-semibold {% if area.data.water > 80 %}text-emerald-500{% elif area.data.water > 65 %}text-amber-500{% else %}text-red-500{% endif %}">
+                            {{ area.data.water }}%
+                        </span>
+                    </div>
+                    <div class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full" style="width:{{ area.data.water }}%;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-[11px] text-sub mb-1">
+                        <span>🔥 {{ _('Gas', 'Gas') }}</span>
+                        <span class="font-semibold {% if area.data.gas > 80 %}text-emerald-500{% elif area.data.gas > 65 %}text-amber-500{% else %}text-red-500{% endif %}">
+                            {{ area.data.gas }}%
+                        </span>
+                    </div>
+                    <div class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-red-400 to-red-500 rounded-full" style="width:{{ area.data.gas }}%;"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+{% endblock %}

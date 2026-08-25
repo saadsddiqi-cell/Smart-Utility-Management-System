@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block header_title %}
+    <div class="text-[22px] font-bold text-main">{{ _('welcome', 'Good day') }}, {{ username }}! 👋</div>
+    <div class="text-[13px] text-sub mt-0.5">{{ _('today', 'Here is your utility overview for today') }}</div>
+{% endblock %}
+
+{% block content %}
+
+    {% if recommendations %}
+    <div class="card mb-6 bg-gradient-to-r from-sky-50 to-emerald-50 dark:from-sky-900/20 dark:to-emerald-900/20 border-sky-100 dark:border-sky-900/30">
+        <div class="text-[15px] font-bold text-main mb-2">💡 {{ _('ai_recommendations', 'AI Smart Recommendations') }}</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for rec in recommendations %}
+            <div class="bg-white/60 dark:bg-slate-800/60 p-3 rounded-xl border {% if rec.priority == 'high' %}border-amber-200 dark:border-amber-900/50{% else %}border-sky-100 dark:border-sky-900/30{% endif %} flex gap-3 items-start">
+                <div class="text-xl">
+                    {% if rec.type == 'electricity' %}⚡{% elif rec.type == 'water' %}💧{% else %}🔥{% endif %}
+                </div>
+                <div class="text-[12px] text-slate-700 dark:text-slate-300 leading-tight pt-0.5">
+                    {{ _(rec.message, rec.message) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Meter Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4.5 mb-6">
+        <div class="card hover:-translate-y-1 transition-transform">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-[22px] mb-3.5 bg-yellow-100 dark:bg-yellow-900/30">⚡</div>
+            <div class="text-[28px] font-bold text-main leading-none mb-1">{{ today.electricity }}</div>
+            <div class="text-[13px] text-sub mb-3">kWh — {{ _('electricity') }}</div>
+            <div class="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000" style="width:{{ [today.electricity / 35 * 100, 100] | min }}%; background: linear-gradient(90deg, #fbbf24, #f59e0b)"></div>
+            </div>
+        </div>
+        <div class="card hover:-translate-y-1 transition-transform">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-[22px] mb-3.5 bg-blue-100 dark:bg-blue-900/30">💧</div>
+            <div class="text-[28px] font-bold text-main leading-none mb-1">{{ today.water }}</div>
+            <div class="text-[13px] text-sub mb-3">{{ _('litres', 'Litres') }} — {{ _('water') }}</div>
+            <div class="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000" style="width:{{ [today.water / 400 * 100, 100] | min }}%; background: linear-gradient(90deg, #38bdf8, #0ea5e9)"></div>
+            </div>
+        </div>
+        <div class="card hover:-translate-y-1 transition-transform">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-[22px] mb-3.5 bg-red-100 dark:bg-red-900/30">🔥</div>
+            <div class="text-[28px] font-bold text-main leading-none mb-1">{{ today.gas }}</div>
+            <div class="text-[13px] text-sub mb-3">m³ — {{ _('gas') }}</div>
+            <div class="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000" style="width:{{ [today.gas / 15 * 100, 100] | min }}%; background: linear-gradient(90deg, #f87171, #ef4444)"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4.5 mb-6">
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-1">⚡ {{ _('electricity') }}</div>
+            <div class="text-[12px] text-sub mb-4">Last 7 days (kWh)</div>
+            <div class="h-[160px] relative"><canvas id="elecChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-1">💧 {{ _('water') }}</div>
+            <div class="text-[12px] text-sub mb-4">Last 7 days (Litres)</div>
+            <div class="h-[160px] relative"><canvas id="waterChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="text-[14px] font-bold text-main mb-1">🔥 {{ _('gas') }}</div>
+            <div class="text-[12px] text-sub mb-4">Last 7 days (m³)</div>
+            <div class="h-[160px] relative"><canvas id="gasChart"></canvas></div>
+        </div>
+    </div>
+
+<!-- History Table -->
+<div class="card">
+
+    <!-- Header + Controls -->
+    <div class="flex items-center justify-between flex-wrap gap-3 mb-4.5">
+        <div>
+            <div class="text-[16px] font-bold text-main mb-1">📋 {{ _('history', 'Consumption History') }}</div>
+            <div class="text-[12px] text-sub">Linked List DSA — sort or search below</div>
+        </div>
+        <div class="flex gap-2.5 items-center flex-wrap">
+
+            <!-- Search Box -->
+            <form action="/search_usage" method="GET" class="flex gap-2">
+                <input type="date" name="date" class="px-3 py-2 border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1e293b] rounded-lg text-[13px] text-black dark:text-white dark:[color-scheme:dark] outline-none focus:border-sky-500">
+                <button type="submit" class="px-4 py-2 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-lg text-white text-[13px] font-semibold cursor-pointer border-none">🔍 {{ _('search', 'Search') }}</button>
+            </form>
+
+            <!-- Sort Button -->
+            <a href="/sort_usage" class="px-4 py-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg text-white text-[13px] font-semibold text-decoration-none">⬇️ {{ _('sort', 'Sort by Amount') }}</a>
+
+            <!-- Reset -->
+            <a href="/dashboard" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-300 text-[13px] font-semibold text-decoration-none">↺ {{ _('reset', 'Reset') }}</a>
+        </div>
+    </div>
+
+    <!-- Search Result Banner -->
+    {% if search_date %}
+    <div class="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800/50 rounded-lg p-2.5 mb-3.5 text-[13px] text-sky-600 dark:text-sky-400 font-semibold">
+        🔍 Binary Search results for: {{ search_date }}
+        — Found {{ search_results|length }} record(s)
+    </div>
+    {% endif %}
+
+    <!-- Sort Banner -->
+    {% if sorted %}
+    <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg p-2.5 mb-3.5 text-[13px] text-emerald-600 dark:text-emerald-400 font-semibold">
+        ⬇️ Sorted by highest amount — powered by Merge Sort DSA
+    </div>
+    {% endif %}
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[600px]">
+            <thead>
+                <tr>
+                    <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Date</th>
+                    <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Utility</th>
+                    <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Amount</th>
+                    <th class="py-2.5 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Unit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set display = search_results if search_results else history %}
+                {% for record in display %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="py-3 px-3.5 text-[13px] text-slate-700 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800/50">{{ record.date }}</td>
+                    <td class="py-3 px-3.5 border-b border-slate-50 dark:border-slate-800/50">
+                        {% if record.utility_type == "electricity" %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-500">⚡ {{ _('electricity') }}</span>
+                        {% elif record.utility_type == "water" %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">💧 {{ _('water') }}</span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400">🔥 {{ _('gas') }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-3.5 text-[13px] font-bold text-main border-b border-slate-50 dark:border-slate-800/50">{{ record.amount }}</td>
+                    <td class="py-3 px-3.5 text-[13px] text-slate-500 dark:text-slate-400 border-b border-slate-50 dark:border-slate-800/50">
+                        {% if record.utility_type == "electricity" %}kWh
+                        {% elif record.utility_type == "water" %}Litres
+                        {% else %}m³
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chartOptions = () => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } }
+        },
+        elements: { point: { radius: 3 }, line: { tension: 0.4 } }
+    });
+
+    new Chart(document.getElementById('elecChart'), {
+        type: 'line',
+        data: { labels: {{ elec_labels | tojson }}, datasets: [{ data: {{ elec_data | tojson }}, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)', fill: true }] },
+        options: chartOptions()
+    });
+
+    new Chart(document.getElementById('waterChart'), {
+        type: 'line',
+        data: { labels: {{ water_labels | tojson }}, datasets: [{ data: {{ water_data | tojson }}, borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.08)', fill: true }] },
+        options: chartOptions()
+    });
+
+    new Chart(document.getElementById('gasChart'), {
+        type: 'line',
+        data: { labels: {{ gas_labels | tojson }}, datasets: [{ data: {{ gas_data | tojson }}, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', fill: true }] },
+        options: chartOptions()
+    });
+</script>
+{% endblock %}

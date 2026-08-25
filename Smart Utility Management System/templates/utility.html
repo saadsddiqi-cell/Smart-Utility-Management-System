@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block header_title %}
+    <div class="text-[22px] font-bold text-main">
+        {% if utype == 'electricity' %}⚡ {{ _('electricity') }}
+        {% elif utype == 'water' %}💧 {{ _('water') }}
+        {% else %}🔥 {{ _('gas') }}
+        {% endif %}
+    </div>
+    <div class="text-[13px] text-sub mt-0.5">Deep dive into your {{ _(utype, utype) }} usage</div>
+{% endblock %}
+
+{% block content %}
+    <div class="card mb-6">
+        <div class="text-[15px] font-bold text-main mb-1">📊 Usage Analysis</div>
+        <div class="text-[12px] text-sub mb-4">Historical consumption for {{ _(utype, utype) }}</div>
+        <div class="h-[300px] relative">
+            <canvas id="utilityChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Awareness Layer (NEW FEATURE) -->
+    <div class="card bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20 border-sky-100 dark:border-sky-900/30">
+        <div class="text-[15px] font-bold text-main mb-1">💡 {{ _('awareness_tips', 'Awareness & Tips') }}</div>
+        <div class="text-[12px] text-sub mb-4">Learn how to conserve {{ _(utype, utype) }} and save money.</div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for tip in awareness_tips %}
+            <div class="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-sky-100 dark:border-sky-900/30">
+                <div class="text-[14px] font-bold text-slate-900 dark:text-white mb-2">{{ _(tip.title, tip.title) }}</div>
+                <div class="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">{{ _(tip.content, tip.content) }}</div>
+            </div>
+            {% endfor %}
+            {% if not awareness_tips %}
+            <div class="col-span-full text-[13px] text-slate-500">No specific tips available at the moment.</div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    new Chart(document.getElementById('utilityChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels | tojson }},
+            datasets: [{
+                label: '{{ utype | title }}',
+                data: {{ data | tojson }},
+                backgroundColor: '{% if utype == "electricity" %}rgba(245,158,11,0.5){% elif utype == "water" %}rgba(14,165,233,0.5){% else %}rgba(239,68,68,0.5){% endif %}',
+                borderColor: '{% if utype == "electricity" %}#f59e0b{% elif utype == "water" %}#0ea5e9{% else %}#ef4444{% endif %}',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b' } }
+            }
+        }
+    });
+</script>
+{% endblock %}
